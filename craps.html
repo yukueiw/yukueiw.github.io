@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Craps Craze: Dice Game Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        label, input, button {
+            margin: 10px 0;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #4CAF50;
+    color: white;
+}
+
+    </style>
+</head>
+<body>
+    <h1>Craps Craze: Dice Game Simulator</h1>
+    <h2>How to Play</h2>
+    <p>Craps is a dice game where players make bets on the outcome of the roll, or a series of rolls, of a pair of dice. In this game, you can choose from three betting strategies:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Bet Type</th>
+                <th>Rules</th>
+                <th>Probability of Winning</th>
+                <th>House Edge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Pass Line Bet</td>
+                <td>Win on 7 or 11 first roll, or repeat point. Lose on 2, 3, or 12 first roll, or 7 before point.</td>
+                <td>Approximately 49.29%</td>
+                <td>1.41%</td>
+            </tr>
+            <tr>
+                <td>Don't Pass Line Bet</td>
+                <td>Win on 2 or 3 first roll, or 7 before point. Lose on 7 or 11 first roll, or repeat point.</td>
+                <td>Approximately 49.36%</td>
+                <td>1.36%</td>
+            </tr>
+            <tr>
+                <td>Field Bet</td>
+                <td>Win on 2 (2:1), 3, 4, 9, 10, 11, or 12 (2:1). Lose on 5, 6, 7, or 8.</td>
+                <td>Approximately 44.44%</td>
+                <td>5.56%</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    
+    
+
+    <h2>Play the Game</h2>
+    <h3>Starting with a balance of $1500, each wager placed in this game is $15.</h3>
+    <label for="numRounds">Number of rounds:</label>
+    <input type="number" id="numRounds" min="1">
+    <label for="pass">Pass Line Bet:</label>
+    <input type="radio" id="pass" name="bet" value="pass" checked>
+    <label for="dontPass">Don't Pass Line Bet:</label>
+    <input type="radio" id="dontPass" name="bet" value="dontPass">
+    <label for="field">Field Bet:</label>
+    <input type="radio" id="field" name="bet" value="field">
+    <button id="rollDice">Roll Dice</button>
+    <p id="result"></p>
+    <canvas id="chart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var chart;  // Global variable to hold the chart
+
+        // Simulate rolling two dice
+        function rollDice() {
+            return Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+        }
+
+        // Play one round of craps
+        function playRound(balance, counts, betType) {
+            var point = 0;
+            var bet = 15;
+            
+            // Initial roll
+            var roll = rollDice();
+            counts[roll-2] += 1;  // Update the counts
+            
+            if (betType === "pass") {
+                if (roll === 7 || roll === 11) {
+                    // Player wins on first roll
+                    balance += bet;
+                } else if (roll === 2 || roll === 3 || roll === 12) {
+                    // Player loses on first roll
+                    balance -= bet;
+                } else {
+                    // Keep rolling until point is made or player loses
+                    point = roll;
+                    while (true) {
+                        roll = rollDice();
+                        counts[roll-2] += 1;  // Update the counts
+                        
+                        if (roll === point) {
+                            // Player makes point and wins
+                            balance += bet;
+                            break;
+                        } else if (roll === 7) {
+                            // Player rolls 7 and loses
+                            balance -= bet;
+                            break;
+                        }
+                    }
+                }
+            } else if (betType === "dontPass") {
+                if (roll === 2 || roll === 3) {
+                    // Player wins on first roll
+                    balance += bet;
+                } else if (roll === 7 || roll === 11) {
+                    // Player loses on first roll
+                    balance -= bet;
+                } else {
+                    // Keep rolling until 7 is rolled or player loses
+                    point = roll;
+                    while (true) {
+                        roll = rollDice();
+                        counts[roll-2] += 1;  // Update the counts
+                        
+                        if (roll === 7) {
+                            // Player rolls 7 and wins
+                            balance += bet;
+                            break;
+                        } else if (roll === point) {
+                            // Player makes point and loses
+                            balance -= bet;
+                            break;
+                        }
+                    }
+                }
+            } else if (betType === "field") {
+                if ([2, 3, 4, 9, 10, 11, 12].includes(roll)) {
+                    // Player wins on first roll
+                    if (roll === 2) {
+                        balance += bet * 2;
+                    } else if (roll === 12) {
+                        balance += bet * 3;
+                    } else {
+                        balance += bet;
+                    }
+                } else {
+                    // Player loses on first roll
+                    balance -= bet;
+                }
+            }
+            
+            return balance;
+        }
+
+        // When the button is clicked, play the specified number of rounds and update the result paragraph
+        document.getElementById('rollDice').addEventListener('click', function() {
+            var balance = 1500;
+            var numRounds = document.getElementById('numRounds').value;
+            var counts = Array(11).fill(0);  // Counts for each possible sum (2-12)
+
+            // Get the selected bet type
+            var betType = document.querySelector('input[name="bet"]:checked').value;
+            
+            for (var i = 0; i < numRounds; i++) {
+                balance = playRound(balance, counts, betType);
+            }
+            
+            document.getElementById('result').innerText = 'Balance after ' + numRounds + ' rounds: $' + balance;
+
+            // If a chart already exists, destroy it
+            if (chart) {
+                chart.destroy();
+            }
+
+            // Draw a new bar chart of the counts
+            var ctx = document.getElementById('chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+                    datasets: [{
+                        label: 'Number of Rolls',
+                        data: counts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
